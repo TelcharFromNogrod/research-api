@@ -1,12 +1,12 @@
 {
   "name": "@openclaw/research-api",
-  "version": "1.0.0",
-  "description": "x402 payment-enabled AI research API - OpenClaw's first paywalled service",
+  "version": "1.2.0",
+  "description": "x402 v1 payment-enabled AI research API - decentralized via x402.rs",
   "type": "module",
-  "main": "server.js",
+  "main": "server-v1.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "start": "node server-v1.js",
+    "dev": "node --watch server-v1.js",
     "test": "curl -s http://localhost:4021/health | jq ."
   },
   "keywords": [
@@ -16,14 +16,12 @@
     "api",
     "micropayments",
     "base",
-    "crypto"
+    "crypto",
+    "decentralized"
   ],
   "author": "OpenClaw",
   "license": "MIT",
   "dependencies": {
-    "@x402/core": "^2.0.0",
-    "@x402/evm": "^2.0.0",
-    "@x402/express": "^2.0.0",
     "dotenv": "^16.0.0",
     "express": "^4.18.0",
     "groq-sdk": "^0.37.0"
