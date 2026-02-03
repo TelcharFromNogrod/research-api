@@ -2,12 +2,23 @@ openapi: 3.0.3
 info:
   title: OpenClaw Research API
   description: |
-    AI-powered research and text summarization API. Pay per query using USDC via the x402 protocol.
+    AI-powered research and text summarization API. Pay per query using USDC on Base mainnet via the x402 v1 protocol.
     
     **Powered by:** Llama 3.3 70B (Groq)
-    **Payment:** USDC on Base (x402 protocol)
+    **Payment:** USDC on Base mainnet (x402 v1 protocol)
+    **Facilitator:** x402.rs (decentralized, no API keys required)
     **Built by:** [Telchar](https://github.com/TelcharFromNogrod)
-  version: 1.1.0
+    
+    ## Pricing
+    - `/research` - $0.02 USDC per query
+    - `/summarize` - $0.01 USDC per query
+    
+    ## Payment Flow (x402 v1)
+    1. Make request → receive 402 with JSON body containing payment requirements
+    2. Sign USDC payment (EIP-3009 transferWithAuthorization)
+    3. Retry request with `X-PAYMENT` header (base64 JSON)
+    4. Receive AI response
+  version: 1.2.0
   contact:
     name: Telchar
     url: https://github.com/TelcharFromNogrod/research-api
@@ -27,12 +38,19 @@ tags:
   - name: health
     description: Service health and status
 
+x-]402-config:
+  facilitator: https://facilitator.x402.rs
+  network: base
+  asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+  assetName: USDC
+  payTo: "0xab70558cd349229FbF03f5E3C50F99Df65969e5c"
+
 paths:
   /health:
     get:
       tags: [health]
       summary: Health Check
-      description: Check if the API is running and view available endpoints
+      description: Check if the API is running and view configuration
       operationId: healthCheck
       responses:
         '200':
@@ -44,10 +62,12 @@ paths:
               example:
                 status: healthy
                 service: OpenClaw Research API
-                version: 1.1.0
+                version: 1.2.0
+                protocol: x402 v1
                 aiModel: llama-3.3-70b-versatile (Groq)
-                timestamp: "2026-02-03T02:45:00.000Z"
-                network: "eip155:8453"
+                facilitator: https://facilitator.x402.rs
+                timestamp: "2026-02-03T03:55:00.000Z"
+                network: base
                 endpoints:
                   - path: /research
                     method: POST
@@ -65,21 +85,19 @@ paths:
       description: |
         Submit a research query and receive structured insights, key points, and related topics.
         
-        **Pricing:** $0.02 USDC per query
+        **Pricing:** $0.02 USDC per query (20000 atomic units)
+        
         **Depth options:**
         - `quick` (default): Fast overview, ~800 tokens
         - `standard`: Balanced analysis, ~1200 tokens  
         - `deep`: Comprehensive research, ~2000 tokens
       operationId: performResearch
-      x-price: "0.02"
-      x-currency: USDC
-      x-network: base
-      x-category: ai
-      x-tags:
-        - ai
-        - research
-        - analysis
-        - insights
+      x-]402:
+        price: "0.02"
+        priceAtomic: "20000"
+        currency: USDC
+        network: base
+        scheme: exact
       requestBody:
         required: true
         content:
@@ -132,12 +150,26 @@ paths:
                 success: false
                 error: "Query must be between 2 and 500 characters"
         '402':
-          description: Payment required
-          headers:
-            payment-required:
-              description: Base64-encoded x402 payment requirements
+          description: Payment required (x402 v1)
+          content:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/PaymentRequired'
+              example:
+                x402Version: 1
+                accepts:
+                  - scheme: exact
+                    network: base
+                    maxAmountRequired: "20000"
+                    resource: https://research-api-production-7eca.up.railway.app/research
+                    description: AI-powered research assistant
+                    mimeType: application/json
+                    payTo: "0xab70558cd349229FbF03f5E3C50F99Df65969e5c"
+                    asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+                    extra:
+                      name: USDC
+                      version: "2"
+                error: Payment required
         '500':
           description: Server error
           content:
@@ -152,21 +184,19 @@ paths:
       description: |
         Summarize any text into key points and a concise overview.
         
-        **Pricing:** $0.01 USDC per summary
+        **Pricing:** $0.01 USDC per summary (10000 atomic units)
+        
         **Style options:**
         - `bullet` (default): Bullet point format
         - `paragraph`: Flowing paragraphs
         - `executive`: Formal executive summary
       operationId: summarizeText
-      x-price: "0.01"
-      x-currency: USDC
-      x-network: base
-      x-category: text
-      x-tags:
-        - ai
-        - summarization
-        - text
-        - analysis
+      x-402:
+        price: "0.01"
+        priceAtomic: "10000"
+        currency: USDC
+        network: base
+        scheme: exact
       requestBody:
         required: true
         content:
@@ -194,7 +224,7 @@ paths:
               example:
                 success: true
                 style: bullet
-                summary: "• The x402 protocol enables HTTP-native payments using USDC\n• Servers return 402 status with payment requirements\n• Clients sign transactions and retry with proof of payment"
+                summary: "• The x402 protocol enables HTTP-native payments using USDC\n• Servers return 402 status with payment requirements\n• Clients sign transactions and retry with payment proof"
                 keyPoints:
                   - "x402 enables HTTP-native USDC payments"
                   - "Uses 402 Payment Required status code"
@@ -212,12 +242,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '402':
-          description: Payment required
-          headers:
-            payment-required:
-              description: Base64-encoded x402 payment requirements
+          description: Payment required (x402 v1)
+          content:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/PaymentRequired'
         '500':
           description: Server error
           content:
@@ -334,6 +363,52 @@ components:
           type: integer
           description: Processing time in milliseconds
 
+    PaymentRequired:
+      type: object
+      description: x402 v1 payment requirements
+      properties:
+        x402Version:
+          type: integer
+          example: 1
+        accepts:
+          type: array
+          items:
+            type: object
+            properties:
+              scheme:
+                type: string
+                example: exact
+              network:
+                type: string
+                example: base
+              maxAmountRequired:
+                type: string
+                description: Amount in atomic units (6 decimals for USDC)
+                example: "20000"
+              resource:
+                type: string
+                format: uri
+              description:
+                type: string
+              mimeType:
+                type: string
+              payTo:
+                type: string
+                description: Receiving wallet address
+              asset:
+                type: string
+                description: USDC contract address on Base
+              extra:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  version:
+                    type: string
+        error:
+          type: string
+          example: Payment required
+
     HealthResponse:
       type: object
       properties:
@@ -344,8 +419,14 @@ components:
           type: string
         version:
           type: string
+        protocol:
+          type: string
+          example: x402 v1
         aiModel:
           type: string
+        facilitator:
+          type: string
+          format: uri
         timestamp:
           type: string
           format: date-time
@@ -383,11 +464,12 @@ components:
       in: header
       name: X-PAYMENT
       description: |
-        x402 payment proof header. Obtained by:
-        1. Making initial request → receive 402 with `payment-required` header
-        2. Parsing payment requirements (base64 JSON)
-        3. Signing USDC payment transaction
-        4. Retrying with signed payment in this header
+        x402 v1 payment proof header (base64 JSON). Obtained by:
+        1. Making initial request → receive 402 with JSON body
+        2. Parsing payment requirements from response body
+        3. Signing USDC transferWithAuthorization (EIP-3009)
+        4. Encoding signed payment as base64 JSON
+        5. Retrying with this header
 
 security:
   - x402Payment: []
