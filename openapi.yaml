@@ -38,7 +38,7 @@ tags:
   - name: health
     description: Service health and status
 
-x-]402-config:
+x-402-config:
   facilitator: https://facilitator.x402.rs
   network: base
   asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -92,7 +92,7 @@ paths:
         - `standard`: Balanced analysis, ~1200 tokens  
         - `deep`: Comprehensive research, ~2000 tokens
       operationId: performResearch
-      x-]402:
+      x-402:
         price: "0.02"
         priceAtomic: "20000"
         currency: USDC
