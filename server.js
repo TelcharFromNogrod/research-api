@@ -26,7 +26,7 @@ app.get("/health", (req, res) => {
     status: "healthy",
     service: "OpenClaw Research API",
     version: "1.1.0",
-    aiModel: "llama-3.1-70b-versatile (Groq)",
+    aiModel: "llama-3.3-70b-versatile (Groq)",
     timestamp: new Date().toISOString(),
     network: "eip155:84532",
     endpoints: [
@@ -272,7 +272,7 @@ Provide comprehensive research findings.`;
 
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
@@ -289,7 +289,7 @@ Provide comprehensive research findings.`;
       insights: response.insights || "",
       relatedTopics: response.relatedTopics || [],
       confidence: response.confidence || 0.8,
-      model: "llama-3.1-70b-versatile"
+      model: "llama-3.3-70b-versatile"
     };
   } catch (error) {
     console.error("Groq API error:", error);
@@ -331,7 +331,7 @@ Instructions: ${styleInstructions[style] || styleInstructions.bullet}`;
 
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
@@ -346,7 +346,7 @@ Instructions: ${styleInstructions[style] || styleInstructions.bullet}`;
       summary: response.summary || "Summary unavailable.",
       keyPoints: response.keyPoints || [],
       sentenceCount: response.sentenceCount || text.split(/[.!?]+/).length,
-      model: "llama-3.1-70b-versatile"
+      model: "llama-3.3-70b-versatile"
     };
   } catch (error) {
     console.error("Groq API error:", error);
