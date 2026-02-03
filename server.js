@@ -2,9 +2,16 @@ import express from "express";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
+import Groq from "groq-sdk";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+// Initialize Groq client (free tier: Llama 3.1 70B)
+// TODO: Upgrade to Claude/GPT-4 for better quality when budget allows
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || ""
+});
 
 const app = express();
 app.use(express.json());
@@ -18,7 +25,8 @@ app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
     service: "OpenClaw Research API",
-    version: "1.0.0",
+    version: "1.1.0",
+    aiModel: "llama-3.1-70b-versatile (Groq)",
     timestamp: new Date().toISOString(),
     network: "eip155:84532",
     endpoints: [
@@ -240,63 +248,117 @@ app.post("/summarize", async (req, res) => {
 });
 
 // ============================================
-// AI FUNCTIONS (placeholder - would use real LLM)
+// AI FUNCTIONS (Groq/Llama 3.1 70B - free tier)
+// TODO: Upgrade to Claude/GPT-4 for better quality when budget allows
 // ============================================
 
 async function performResearch(query, depth) {
-  // In production, this would call Claude/GPT/etc.
-  // For now, return structured placeholder demonstrating the format
+  const maxTokens = depth === "deep" ? 2000 : depth === "standard" ? 1200 : 800;
   
-  const depthMultiplier = depth === "deep" ? 3 : depth === "standard" ? 2 : 1;
-  
-  // Simulate processing time based on depth
-  await new Promise(r => setTimeout(r, 100 * depthMultiplier));
-  
-  return {
-    summary: `Research findings for: "${query}". This is a demonstration response. In production, this endpoint would use AI to provide comprehensive research on any topic, synthesizing information and providing actionable insights.`,
-    keyPoints: [
-      "AI-powered research provides faster insights than manual searching",
-      "Structured output makes integration with other AI agents seamless",
-      "x402 protocol enables micropayments for each query",
-      `Query depth '${depth}' affects comprehensiveness of results`
-    ],
-    insights: `Based on analyzing "${query}", we recommend further investigation into related areas. The x402 protocol makes this kind of on-demand research economically viable for AI agents.`,
-    relatedTopics: [
-      "x402 protocol",
-      "AI agents",
-      "micropayments",
-      "automated research"
-    ],
-    confidence: 0.75 + (Math.random() * 0.2),
-    sources: [
-      { type: "web", count: 5 * depthMultiplier },
-      { type: "academic", count: 2 * depthMultiplier }
-    ]
-  };
+  const systemPrompt = `You are a research assistant. Analyze the query and provide structured research findings.
+Return a JSON object with these fields:
+- summary: A concise summary of your findings (2-4 sentences)
+- keyPoints: Array of 3-5 key insights as strings
+- insights: Actionable recommendations or deeper analysis (1-2 sentences)
+- relatedTopics: Array of 3-5 related topics to explore
+- confidence: A number 0.0-1.0 indicating how confident you are in the findings
+
+Respond ONLY with valid JSON, no markdown or explanation.`;
+
+  const userPrompt = `Research query: "${query}"
+Depth: ${depth}
+
+Provide comprehensive research findings.`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    const response = JSON.parse(completion.choices[0].message.content);
+    return {
+      summary: response.summary || "Research completed.",
+      keyPoints: response.keyPoints || [],
+      insights: response.insights || "",
+      relatedTopics: response.relatedTopics || [],
+      confidence: response.confidence || 0.8,
+      model: "llama-3.1-70b-versatile"
+    };
+  } catch (error) {
+    console.error("Groq API error:", error);
+    // Fallback response if API fails
+    return {
+      summary: `Research on "${query}" could not be completed due to an API error.`,
+      keyPoints: ["API temporarily unavailable"],
+      insights: "Please try again later.",
+      relatedTopics: [],
+      confidence: 0.0,
+      error: "AI service temporarily unavailable"
+    };
+  }
 }
 
 async function performSummarization(text, style) {
-  // In production, this would call an LLM
-  await new Promise(r => setTimeout(r, 50));
-  
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-  const keyPoints = sentences.slice(0, Math.min(5, sentences.length))
-    .map(s => s.trim().substring(0, 100) + (s.length > 100 ? "..." : ""));
-  
-  let summary;
-  if (style === "executive") {
-    summary = `Executive Summary: ${keyPoints[0]} This document covers ${sentences.length} key points across the provided text.`;
-  } else if (style === "paragraph") {
-    summary = keyPoints.join(" ");
-  } else {
-    summary = keyPoints.map((p, i) => `• ${p}`).join("\n");
-  }
-  
-  return {
-    summary,
-    keyPoints,
-    sentenceCount: sentences.length
+  const styleInstructions = {
+    bullet: "Format the summary as bullet points (• prefix each point)",
+    paragraph: "Write as flowing paragraphs",
+    executive: "Write a formal executive summary with key takeaways"
   };
+
+  const systemPrompt = `You are a text summarization assistant.
+Summarize the provided text in the requested style.
+Return a JSON object with these fields:
+- summary: The summarized text in the requested style
+- keyPoints: Array of 3-5 main takeaways as strings
+- sentenceCount: Number of sentences in the original text
+
+Respond ONLY with valid JSON, no markdown or explanation.`;
+
+  const userPrompt = `Text to summarize:
+"""
+${text.substring(0, 8000)}
+"""
+
+Style: ${style}
+Instructions: ${styleInstructions[style] || styleInstructions.bullet}`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: 1000,
+      temperature: 0.5,
+      response_format: { type: "json_object" }
+    });
+
+    const response = JSON.parse(completion.choices[0].message.content);
+    return {
+      summary: response.summary || "Summary unavailable.",
+      keyPoints: response.keyPoints || [],
+      sentenceCount: response.sentenceCount || text.split(/[.!?]+/).length,
+      model: "llama-3.1-70b-versatile"
+    };
+  } catch (error) {
+    console.error("Groq API error:", error);
+    // Fallback to simple extraction
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    return {
+      summary: sentences.slice(0, 3).join(" "),
+      keyPoints: sentences.slice(0, 5).map(s => s.trim().substring(0, 100)),
+      sentenceCount: sentences.length,
+      error: "AI service temporarily unavailable - basic extraction used"
+    };
+  }
 }
 
 // ============================================
@@ -308,18 +370,21 @@ const PORT = process.env.PORT || 4021;
 app.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║          🔬 OpenClaw Research API v1.0.0 🔬               ║
+║          🔬 OpenClaw Research API v1.1.0 🔬               ║
 ╠═══════════════════════════════════════════════════════════╣
 ║  x402 Payment-Enabled Research Service                    ║
+║  Powered by Llama 3.1 70B (Groq)                          ║
 ║                                                           ║
 ║  Endpoints:                                               ║
-║  • POST /research  - AI research ($0.005/query)           ║
-║  • POST /summarize - Text summarization ($0.003/query)    ║
+║  • POST /research  - AI research ($0.02/query)            ║
+║  • POST /summarize - Text summarization ($0.01/query)     ║
 ║  • GET  /health    - Health check (free)                  ║
 ║                                                           ║
 ║  Server: http://localhost:${PORT}                           ║
 ║  Network: Base Sepolia (eip155:84532)                     ║
 ║  Pay To: ${payTo.substring(0, 10)}...${payTo.substring(34)}                  ║
+║                                                           ║
+║  NOTE: Upgrade to Claude/GPT-4 when budget allows         ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
 });
