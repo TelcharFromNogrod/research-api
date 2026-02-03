@@ -22,8 +22,8 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     network: "eip155:84532",
     endpoints: [
-      { path: "/research", method: "POST", price: "$0.005", description: "AI-powered research" },
-      { path: "/summarize", method: "POST", price: "$0.003", description: "Text summarization" }
+      { path: "/research", method: "POST", price: "$0.02", description: "AI-powered research" },
+      { path: "/summarize", method: "POST", price: "$0.01", description: "Text summarization" }
     ]
   });
 });
@@ -49,7 +49,7 @@ app.use(
         accepts: [
           {
             scheme: "exact",
-            price: "$0.005", // 0.5 cents per research query
+            price: "$0.02", // 2 cents per research query
             network: "eip155:84532", // Base Sepolia for testing
             payTo,
           },
@@ -97,7 +97,7 @@ app.use(
         accepts: [
           {
             scheme: "exact",
-            price: "$0.003", // 0.3 cents per summary
+            price: "$0.01", // 1 cent per summary
             network: "eip155:84532",
             payTo,
           },
