@@ -28,7 +28,7 @@ app.get("/health", (req, res) => {
     version: "1.1.0",
     aiModel: "llama-3.3-70b-versatile (Groq)",
     timestamp: new Date().toISOString(),
-    network: "eip155:8453",
+    network: "eip155:84532",
     endpoints: [
       { path: "/research", method: "POST", price: "$0.02", description: "AI-powered research" },
       { path: "/summarize", method: "POST", price: "$0.01", description: "Text summarization" }
@@ -41,12 +41,12 @@ const payTo = process.env.PAY_TO_ADDRESS || "0x000000000000000000000000000000000
 
 // Create facilitator client (x402.rs - decentralized, no API keys needed)
 const facilitatorClient = new HTTPFacilitatorClient({
-  url: process.env.FACILITATOR_URL || "https://facilitator.x402.rs"
+  url: process.env.FACILITATOR_URL || "https://x402.org/facilitator"
 });
 
 // Create resource server and register EVM scheme
 const server = new x402ResourceServer(facilitatorClient)
-  .register("eip155:8453", new ExactEvmScheme());  // Base mainnet
+  .register("eip155:84532", new ExactEvmScheme());  // Base Sepolia
 
 // Configure payment middleware for our endpoints
 app.use(
@@ -57,7 +57,7 @@ app.use(
           {
             scheme: "exact",
             price: "$0.02", // 2 cents per research query
-            network: "eip155:8453", // Base mainnet
+            network: "eip155:84532", // Base Sepolia
             payTo,
           },
         ],
@@ -105,7 +105,7 @@ app.use(
           {
             scheme: "exact",
             price: "$0.01", // 1 cent per summary
-            network: "eip155:8453",
+            network: "eip155:84532",
             payTo,
           },
         ],
@@ -380,7 +380,7 @@ app.listen(PORT, () => {
 ║  • GET  /health    - Health check (free)                  ║
 ║                                                           ║
 ║  Server: http://localhost:${PORT}                           ║
-║  Network: Base mainnet (eip155:8453)                     ║
+║  Network: Base Sepolia (eip155:84532)                     ║
 ║  Pay To: ${payTo.substring(0, 10)}...${payTo.substring(34)}                  ║
 ║                                                           ║
 ║  NOTE: Upgrade to Claude/GPT-4 when budget allows         ║
