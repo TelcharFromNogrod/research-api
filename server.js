@@ -28,7 +28,7 @@ app.get("/health", (req, res) => {
     version: "1.1.0",
     aiModel: "llama-3.3-70b-versatile (Groq)",
     timestamp: new Date().toISOString(),
-    network: "eip155:84532",
+    network: "eip155:8453",
     endpoints: [
       { path: "/research", method: "POST", price: "$0.02", description: "AI-powered research" },
       { path: "/summarize", method: "POST", price: "$0.01", description: "Text summarization" }
@@ -46,7 +46,6 @@ const facilitatorClient = new HTTPFacilitatorClient({
 
 // Create resource server and register EVM scheme
 const server = new x402ResourceServer(facilitatorClient)
-  .register("eip155:84532", new ExactEvmScheme())  // Base Sepolia testnet
   .register("eip155:8453", new ExactEvmScheme());  // Base mainnet
 
 // Configure payment middleware for our endpoints
@@ -58,7 +57,7 @@ app.use(
           {
             scheme: "exact",
             price: "$0.02", // 2 cents per research query
-            network: "eip155:84532", // Base Sepolia for testing
+            network: "eip155:8453", // Base mainnet
             payTo,
           },
         ],
@@ -106,7 +105,7 @@ app.use(
           {
             scheme: "exact",
             price: "$0.01", // 1 cent per summary
-            network: "eip155:84532",
+            network: "eip155:8453",
             payTo,
           },
         ],
@@ -381,7 +380,7 @@ app.listen(PORT, () => {
 ║  • GET  /health    - Health check (free)                  ║
 ║                                                           ║
 ║  Server: http://localhost:${PORT}                           ║
-║  Network: Base Sepolia (eip155:84532)                     ║
+║  Network: Base mainnet (eip155:8453)                     ║
 ║  Pay To: ${payTo.substring(0, 10)}...${payTo.substring(34)}                  ║
 ║                                                           ║
 ║  NOTE: Upgrade to Claude/GPT-4 when budget allows         ║
