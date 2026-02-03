@@ -1,0 +1,626 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OpenClaw Research API",
+    "description": "AI-powered research and text summarization API. Pay per query using USDC on Base mainnet via the x402 v1 protocol.\n\n**Powered by:** Llama 3.3 70B (Groq)\n**Payment:** USDC on Base mainnet (x402 v1 protocol)\n**Facilitator:** x402.rs (decentralized, no API keys required)\n**Built by:** [Telchar](https://github.com/TelcharFromNogrod)\n\n## Pricing\n- `/research` - $0.02 USDC per query\n- `/summarize` - $0.01 USDC per query\n\n## Payment Flow (x402 v1)\n1. Make request → receive 402 with JSON body containing payment requirements\n2. Sign USDC payment (EIP-3009 transferWithAuthorization)\n3. Retry request with `X-PAYMENT` header (base64 JSON)\n4. Receive AI response\n",
+    "version": "1.2.0",
+    "contact": {
+      "name": "Telchar",
+      "url": "https://github.com/TelcharFromNogrod/research-api"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://research-api-production-7eca.up.railway.app",
+      "description": "Production (Base mainnet)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "research",
+      "description": "AI-powered research and analysis"
+    },
+    {
+      "name": "text",
+      "description": "Text processing and summarization"
+    },
+    {
+      "name": "health",
+      "description": "Service health and status"
+    }
+  ],
+  "x-402-config": {
+    "facilitator": "https://facilitator.x402.rs",
+    "network": "base",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "assetName": "USDC",
+    "payTo": "0xab70558cd349229FbF03f5E3C50F99Df65969e5c"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "description": "Check if the API is running and view configuration",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "healthy",
+                  "service": "OpenClaw Research API",
+                  "version": "1.2.0",
+                  "protocol": "x402 v1",
+                  "aiModel": "llama-3.3-70b-versatile (Groq)",
+                  "facilitator": "https://facilitator.x402.rs",
+                  "timestamp": "2026-02-03T03:55:00.000Z",
+                  "network": "base",
+                  "endpoints": [
+                    {
+                      "path": "/research",
+                      "method": "POST",
+                      "price": "$0.02",
+                      "description": "AI-powered research"
+                    },
+                    {
+                      "path": "/summarize",
+                      "method": "POST",
+                      "price": "$0.01",
+                      "description": "Text summarization"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/research": {
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "AI Research",
+        "description": "Submit a research query and receive structured insights, key points, and related topics.\n\n**Pricing:** $0.02 USDC per query (20000 atomic units)\n\n**Depth options:**\n- `quick` (default): Fast overview, ~800 tokens\n- `standard`: Balanced analysis, ~1200 tokens  \n- `deep`: Comprehensive research, ~2000 tokens\n",
+        "operationId": "performResearch",
+        "x-402": {
+          "price": "0.02",
+          "priceAtomic": "20000",
+          "currency": "USDC",
+          "network": "base",
+          "scheme": "exact"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchRequest"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic research query",
+                  "value": {
+                    "query": "What is x402 and how does it enable AI payments?"
+                  }
+                },
+                "deep": {
+                  "summary": "Deep research with depth specified",
+                  "value": {
+                    "query": "Compare proof-of-stake vs proof-of-work consensus mechanisms",
+                    "depth": "deep"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Research completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchResponse"
+                },
+                "example": {
+                  "success": true,
+                  "query": "What is x402?",
+                  "depth": "quick",
+                  "summary": "x402 is an open payment protocol that enables HTTP-native payments using USDC stablecoins...",
+                  "keyPoints": [
+                    "x402 uses HTTP 402 Payment Required status code",
+                    "Payments are made in USDC stablecoin",
+                    "Enables AI agents to pay autonomously",
+                    "Works on Base and other EVM chains"
+                  ],
+                  "insights": "The x402 protocol has significant potential for enabling agent-to-agent commerce...",
+                  "relatedTopics": [
+                    "USDC stablecoin",
+                    "Base network",
+                    "AI agents",
+                    "Micropayments"
+                  ],
+                  "confidence": 0.85,
+                  "model": "llama-3.3-70b-versatile",
+                  "processingTimeMs": 1598
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Query must be between 2 and 500 characters"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required (x402 v1)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequired"
+                },
+                "example": {
+                  "x402Version": 1,
+                  "accepts": [
+                    {
+                      "scheme": "exact",
+                      "network": "base",
+                      "maxAmountRequired": "20000",
+                      "resource": "https://research-api-production-7eca.up.railway.app/research",
+                      "description": "AI-powered research assistant",
+                      "mimeType": "application/json",
+                      "payTo": "0xab70558cd349229FbF03f5E3C50F99Df65969e5c",
+                      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                      "extra": {
+                        "name": "USDC",
+                        "version": "2"
+                      }
+                    }
+                  ],
+                  "error": "Payment required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/summarize": {
+      "post": {
+        "tags": [
+          "text"
+        ],
+        "summary": "Text Summarization",
+        "description": "Summarize any text into key points and a concise overview.\n\n**Pricing:** $0.01 USDC per summary (10000 atomic units)\n\n**Style options:**\n- `bullet` (default): Bullet point format\n- `paragraph`: Flowing paragraphs\n- `executive`: Formal executive summary\n",
+        "operationId": "summarizeText",
+        "x-402": {
+          "price": "0.01",
+          "priceAtomic": "10000",
+          "currency": "USDC",
+          "network": "base",
+          "scheme": "exact"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummarizeRequest"
+              },
+              "examples": {
+                "bullet": {
+                  "summary": "Bullet point summary",
+                  "value": {
+                    "text": "The x402 protocol enables HTTP-native payments using USDC stablecoins. It works by having servers return a 402 Payment Required status code along with payment requirements in the headers. Clients can then sign a payment transaction and retry the request with proof of payment.",
+                    "style": "bullet"
+                  }
+                },
+                "executive": {
+                  "summary": "Executive summary style",
+                  "value": {
+                    "text": "Long document text here...",
+                    "style": "executive"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Summarization completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummarizeResponse"
+                },
+                "example": {
+                  "success": true,
+                  "style": "bullet",
+                  "summary": "• The x402 protocol enables HTTP-native payments using USDC\n• Servers return 402 status with payment requirements\n• Clients sign transactions and retry with payment proof",
+                  "keyPoints": [
+                    "x402 enables HTTP-native USDC payments",
+                    "Uses 402 Payment Required status code",
+                    "Clients sign and retry with payment proof"
+                  ],
+                  "sentenceCount": 3,
+                  "model": "llama-3.3-70b-versatile",
+                  "wordCount": {
+                    "original": 62,
+                    "summary": 35
+                  },
+                  "processingTimeMs": 432
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required (x402 v1)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequired"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResearchRequest": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 500,
+            "description": "Research question or topic",
+            "example": "What is x402 and how does it work?"
+          },
+          "depth": {
+            "type": "string",
+            "enum": [
+              "quick",
+              "standard",
+              "deep"
+            ],
+            "default": "quick",
+            "description": "Research depth level"
+          }
+        }
+      },
+      "ResearchResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "query": {
+            "type": "string",
+            "description": "Original query"
+          },
+          "depth": {
+            "type": "string",
+            "description": "Depth level used"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Concise summary of findings"
+          },
+          "keyPoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Key insights and takeaways"
+          },
+          "insights": {
+            "type": "string",
+            "description": "Actionable recommendations or deeper analysis"
+          },
+          "relatedTopics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Related topics to explore"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence score (0-1)"
+          },
+          "model": {
+            "type": "string",
+            "description": "AI model used"
+          },
+          "processingTimeMs": {
+            "type": "integer",
+            "description": "Processing time in milliseconds"
+          }
+        }
+      },
+      "SummarizeRequest": {
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 100,
+            "maxLength": 10000,
+            "description": "Text to summarize"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "bullet",
+              "paragraph",
+              "executive"
+            ],
+            "default": "bullet",
+            "description": "Summary output style"
+          }
+        }
+      },
+      "SummarizeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "style": {
+            "type": "string",
+            "description": "Style used for summary"
+          },
+          "summary": {
+            "type": "string",
+            "description": "The summarized text"
+          },
+          "keyPoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Main takeaways"
+          },
+          "sentenceCount": {
+            "type": "integer",
+            "description": "Original sentence count"
+          },
+          "model": {
+            "type": "string",
+            "description": "AI model used"
+          },
+          "wordCount": {
+            "type": "object",
+            "properties": {
+              "original": {
+                "type": "integer"
+              },
+              "summary": {
+                "type": "integer"
+              }
+            }
+          },
+          "processingTimeMs": {
+            "type": "integer",
+            "description": "Processing time in milliseconds"
+          }
+        }
+      },
+      "PaymentRequired": {
+        "type": "object",
+        "description": "x402 v1 payment requirements",
+        "properties": {
+          "x402Version": {
+            "type": "integer",
+            "example": 1
+          },
+          "accepts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scheme": {
+                  "type": "string",
+                  "example": "exact"
+                },
+                "network": {
+                  "type": "string",
+                  "example": "base"
+                },
+                "maxAmountRequired": {
+                  "type": "string",
+                  "description": "Amount in atomic units (6 decimals for USDC)",
+                  "example": "20000"
+                },
+                "resource": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "mimeType": {
+                  "type": "string"
+                },
+                "payTo": {
+                  "type": "string",
+                  "description": "Receiving wallet address"
+                },
+                "asset": {
+                  "type": "string",
+                  "description": "USDC contract address on Base"
+                },
+                "extra": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Payment required"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "healthy"
+          },
+          "service": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string",
+            "example": "x402 v1"
+          },
+          "aiModel": {
+            "type": "string"
+          },
+          "facilitator": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "network": {
+            "type": "string"
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "processingTimeMs": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "x402Payment": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-PAYMENT",
+        "description": "x402 v1 payment proof header (base64 JSON). Obtained by:\n1. Making initial request → receive 402 with JSON body\n2. Parsing payment requirements from response body\n3. Signing USDC transferWithAuthorization (EIP-3009)\n4. Encoding signed payment as base64 JSON\n5. Retrying with this header\n"
+      }
+    }
+  },
+  "security": [
+    {
+      "x402Payment": []
+    }
+  ],
+  "externalDocs": {
+    "description": "GitHub Repository",
+    "url": "https://github.com/TelcharFromNogrod/research-api"
+  }
+}
