@@ -1,0 +1,397 @@
+openapi: 3.0.3
+info:
+  title: OpenClaw Research API
+  description: |
+    AI-powered research and text summarization API. Pay per query using USDC via the x402 protocol.
+    
+    **Powered by:** Llama 3.3 70B (Groq)
+    **Payment:** USDC on Base (x402 protocol)
+    **Built by:** [Telchar](https://github.com/TelcharFromNogrod)
+  version: 1.1.0
+  contact:
+    name: Telchar
+    url: https://github.com/TelcharFromNogrod/research-api
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://research-api-production-7eca.up.railway.app
+    description: Production (Base mainnet)
+
+tags:
+  - name: research
+    description: AI-powered research and analysis
+  - name: text
+    description: Text processing and summarization
+  - name: health
+    description: Service health and status
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health Check
+      description: Check if the API is running and view available endpoints
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                service: OpenClaw Research API
+                version: 1.1.0
+                aiModel: llama-3.3-70b-versatile (Groq)
+                timestamp: "2026-02-03T02:45:00.000Z"
+                network: "eip155:8453"
+                endpoints:
+                  - path: /research
+                    method: POST
+                    price: "$0.02"
+                    description: AI-powered research
+                  - path: /summarize
+                    method: POST
+                    price: "$0.01"
+                    description: Text summarization
+
+  /research:
+    post:
+      tags: [research]
+      summary: AI Research
+      description: |
+        Submit a research query and receive structured insights, key points, and related topics.
+        
+        **Pricing:** $0.02 USDC per query
+        **Depth options:**
+        - `quick` (default): Fast overview, ~800 tokens
+        - `standard`: Balanced analysis, ~1200 tokens  
+        - `deep`: Comprehensive research, ~2000 tokens
+      operationId: performResearch
+      x-price: "0.02"
+      x-currency: USDC
+      x-network: base
+      x-category: ai
+      x-tags:
+        - ai
+        - research
+        - analysis
+        - insights
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResearchRequest'
+            examples:
+              basic:
+                summary: Basic research query
+                value:
+                  query: "What is x402 and how does it enable AI payments?"
+              deep:
+                summary: Deep research with depth specified
+                value:
+                  query: "Compare proof-of-stake vs proof-of-work consensus mechanisms"
+                  depth: deep
+      responses:
+        '200':
+          description: Research completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchResponse'
+              example:
+                success: true
+                query: "What is x402?"
+                depth: quick
+                summary: "x402 is an open payment protocol that enables HTTP-native payments using USDC stablecoins..."
+                keyPoints:
+                  - "x402 uses HTTP 402 Payment Required status code"
+                  - "Payments are made in USDC stablecoin"
+                  - "Enables AI agents to pay autonomously"
+                  - "Works on Base and other EVM chains"
+                insights: "The x402 protocol has significant potential for enabling agent-to-agent commerce..."
+                relatedTopics:
+                  - "USDC stablecoin"
+                  - "Base network"
+                  - "AI agents"
+                  - "Micropayments"
+                confidence: 0.85
+                model: llama-3.3-70b-versatile
+                processingTimeMs: 1598
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Query must be between 2 and 500 characters"
+        '402':
+          description: Payment required
+          headers:
+            payment-required:
+              description: Base64-encoded x402 payment requirements
+              schema:
+                type: string
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /summarize:
+    post:
+      tags: [text]
+      summary: Text Summarization
+      description: |
+        Summarize any text into key points and a concise overview.
+        
+        **Pricing:** $0.01 USDC per summary
+        **Style options:**
+        - `bullet` (default): Bullet point format
+        - `paragraph`: Flowing paragraphs
+        - `executive`: Formal executive summary
+      operationId: summarizeText
+      x-price: "0.01"
+      x-currency: USDC
+      x-network: base
+      x-category: text
+      x-tags:
+        - ai
+        - summarization
+        - text
+        - analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummarizeRequest'
+            examples:
+              bullet:
+                summary: Bullet point summary
+                value:
+                  text: "The x402 protocol enables HTTP-native payments using USDC stablecoins. It works by having servers return a 402 Payment Required status code along with payment requirements in the headers. Clients can then sign a payment transaction and retry the request with proof of payment."
+                  style: bullet
+              executive:
+                summary: Executive summary style
+                value:
+                  text: "Long document text here..."
+                  style: executive
+      responses:
+        '200':
+          description: Summarization completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummarizeResponse'
+              example:
+                success: true
+                style: bullet
+                summary: "• The x402 protocol enables HTTP-native payments using USDC\n• Servers return 402 status with payment requirements\n• Clients sign transactions and retry with proof of payment"
+                keyPoints:
+                  - "x402 enables HTTP-native USDC payments"
+                  - "Uses 402 Payment Required status code"
+                  - "Clients sign and retry with payment proof"
+                sentenceCount: 3
+                model: llama-3.3-70b-versatile
+                wordCount:
+                  original: 62
+                  summary: 35
+                processingTimeMs: 432
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          description: Payment required
+          headers:
+            payment-required:
+              description: Base64-encoded x402 payment requirements
+              schema:
+                type: string
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ResearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: Research question or topic
+          example: "What is x402 and how does it work?"
+        depth:
+          type: string
+          enum: [quick, standard, deep]
+          default: quick
+          description: Research depth level
+
+    ResearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        query:
+          type: string
+          description: Original query
+        depth:
+          type: string
+          description: Depth level used
+        summary:
+          type: string
+          description: Concise summary of findings
+        keyPoints:
+          type: array
+          items:
+            type: string
+          description: Key insights and takeaways
+        insights:
+          type: string
+          description: Actionable recommendations or deeper analysis
+        relatedTopics:
+          type: array
+          items:
+            type: string
+          description: Related topics to explore
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Confidence score (0-1)
+        model:
+          type: string
+          description: AI model used
+        processingTimeMs:
+          type: integer
+          description: Processing time in milliseconds
+
+    SummarizeRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 100
+          maxLength: 10000
+          description: Text to summarize
+        style:
+          type: string
+          enum: [bullet, paragraph, executive]
+          default: bullet
+          description: Summary output style
+
+    SummarizeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        style:
+          type: string
+          description: Style used for summary
+        summary:
+          type: string
+          description: The summarized text
+        keyPoints:
+          type: array
+          items:
+            type: string
+          description: Main takeaways
+        sentenceCount:
+          type: integer
+          description: Original sentence count
+        model:
+          type: string
+          description: AI model used
+        wordCount:
+          type: object
+          properties:
+            original:
+              type: integer
+            summary:
+              type: integer
+        processingTimeMs:
+          type: integer
+          description: Processing time in milliseconds
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        service:
+          type: string
+        version:
+          type: string
+        aiModel:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        network:
+          type: string
+        endpoints:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              method:
+                type: string
+              price:
+                type: string
+              description:
+                type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+        processingTimeMs:
+          type: integer
+
+  securitySchemes:
+    x402Payment:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: |
+        x402 payment proof header. Obtained by:
+        1. Making initial request → receive 402 with `payment-required` header
+        2. Parsing payment requirements (base64 JSON)
+        3. Signing USDC payment transaction
+        4. Retrying with signed payment in this header
+
+security:
+  - x402Payment: []
+
+externalDocs:
+  description: GitHub Repository
+  url: https://github.com/TelcharFromNogrod/research-api
